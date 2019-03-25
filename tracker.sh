@@ -1,2 +1,3 @@
 #!/bin/bash
-xinput --test-xi2 --root | ./tracker.py | tee tracker.log
+cd $(readlink -m $(dirname $0))
+xinput --test-xi2 --root | ./tracker.py

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=HID Interaction Tracker
+GenericName=
+Comment=
+Exec=/home/tmaurer/src/interaction-tracker/tracker.sh
+Terminal=false
+Type=Application
+Icon=
+Categories=
+StartupNotify=false
