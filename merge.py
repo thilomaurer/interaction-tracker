@@ -4,7 +4,7 @@ import time
 import argparse
 
 parser = argparse.ArgumentParser(description='HID Interaction Tracker - Window Merger')
-parser.add_argument('-i','--ifilename', metavar='ofilename', type=str, default="tracker.log", help='output filename')
+parser.add_argument('-i','--ifilename', metavar='ofilename', type=str, default="interaction.log", help='output filename')
 args = parser.parse_args()
 
 ifile = open(args.ifilename,"r")
@@ -13,7 +13,6 @@ mergegap=5
 
 def dateFromMinute(m):
     return time.asctime(time.localtime(m*60))
-
 
 def addWindow(start,end):
     minutes=end-start+1
