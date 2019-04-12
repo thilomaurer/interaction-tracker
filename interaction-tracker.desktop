@@ -1,5 +1,5 @@
 [Desktop Entry]
-Name=HID Interaction Tracker
+Name=Interaction Tracker
 GenericName=
 Comment=
 Exec=/home/tmaurer/src/interaction-tracker/tracker.sh

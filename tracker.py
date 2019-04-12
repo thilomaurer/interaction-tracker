@@ -2,6 +2,7 @@
 import sys
 import time
 import argparse
+import NetworkManager
 
 evts={}
 
@@ -13,6 +14,32 @@ args = parser.parse_args()
 ofile=open(args.ofilename,"a")
 
 lastm=-1
+
+locations = {
+        'Home': {
+            'wifi': ['Familie Maurer'],
+        },
+        'IBM': {
+            'wifi': ['IBM'],
+            'vpn': ['IBM SAS']
+        }
+}
+
+def get_locations():
+    locs = []
+    cons = NetworkManager.NetworkManager.ActiveConnections
+    for con in cons:
+        for loc,v in locations.items():
+            if con.Type == "802-11-wireless":
+                wifi = v.get('wifi',[])
+                if con.Id in wifi:
+                    locs.append(loc)
+            if con.Type == "vpn":
+                wifi = v.get('vpn',[])
+                if con.Id in wifi:
+                    locs.append(loc)
+    return locs
+
 
 def dateFromMinute(m):
     return time.asctime(time.localtime(m*60))
@@ -28,11 +55,12 @@ def log_event(t,p):
     global lastm
     m=int(t/60)
     if not m in evts:
-        evts[m]={0:0}
+
+        evts[m]={'xinput': {0:0}, 'location': get_locations()}
         if lastm>=0:
             write(lastm)
     lastm=m
-    x=evts[m]
+    x=evts[m]['xinput']
 
     if not p in x:
         x[p]=0
