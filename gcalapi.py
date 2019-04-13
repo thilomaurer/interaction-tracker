@@ -61,7 +61,7 @@ class google_calendar_api:
         calendarId = first(cals, lambda c: c['summary']==calname)['id']
         return calendarId
 
-    def create_event(self, calendarId, eventTitle, startDate, endDate):
+    def create_event(self, calendarId, eventTitle, startDate, endDate, location):
         eventBody = {
             "summary": eventTitle,
             "start": { # The (inclusive) start time of the event. For a recurring event, this is the start time of the first instance.
@@ -73,7 +73,10 @@ class google_calendar_api:
                 #"date": "A String", # The date, in the format "yyyy-mm-dd", if this is an all-day event.
                 #"timeZone": "A String", # The time zone in which the time is specified. (Formatted as an IANA Time Zone Database name, e.g. "Europe/Zurich".) For recurring events this field is required and specifies the time zone in which the recurrence is expanded. For single events this field is optional and indicates a custom time zone for the event start/end.
                 "dateTime": endDate.isoformat('T') # The time, as a combined date-time value (formatted according to RFC3339). A time zone offset is required unless a time zone is explicitly specified in timeZone.
-            },        
+            },
+            "location": location,
+            "transparency": "transparent"
+
         }
         insert_result = self.service.events().insert(calendarId=calendarId, body=eventBody).execute()
         if insert_result.get('status', None) != 'confirmed':

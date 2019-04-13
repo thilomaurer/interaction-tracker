@@ -43,21 +43,25 @@ calendarId = api.lookup_calendarId(calname)
 
 def eventTitle(evt):
     xin=evt['xinput']
+    keys = xin.get(3,"no")
+    clicks = xin.get(4,"no")
+    return "{} keys, {} clicks".format(keys, clicks)
+
+def eventLocation(evt):
     loc=evt.get('location',None)
     if loc:
         locstr=', '.join(loc)
     else:
-        locstr='Unknown Location'
-    keys = xin.get(3,"no")
-    clicks = xin.get(4,"no")
-    return "{}: {} keys, {} clicks".format(locstr, keys, clicks)
+        locstr=None
+    return locstr
 
 def addEvent(start,end,evt):
     startDate = datetime.datetime.fromtimestamp(start*60).astimezone()
     endDate = datetime.datetime.fromtimestamp(end*60).astimezone()
     title = eventTitle(evt)
-    print(startDate,endDate,title)
-    api.create_event(calendarId,title,startDate,endDate)
+    location = eventLocation(evt)
+    print(startDate,endDate,location,title)
+    api.create_event(calendarId,title,startDate,endDate,location)
 
 def dateFromMinute(m):
     return time.asctime(time.localtime(m*60))
