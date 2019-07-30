@@ -18,4 +18,4 @@
 # EVENT type 17 (RawMotion)
 
 cd $(readlink -m $(dirname $0))
-xinput --test-xi2 --root | ./tracker.py --ignore-event-type 11 12 | tee tracker.log
+xinput --test-xi2 --root | ./tracker.py --ignore-event-type 11 12 |& tee tracker.log
