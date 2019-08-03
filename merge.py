@@ -447,22 +447,33 @@ def compile_weekview(start, end):
     details = True
     tabs=[]
     tab = [''] * start.weekday()
+    month = start.month
+    monthstr = start.strftime("%b")
     for d in daterange(start, end):
         g = getday(d)
         wd = d.weekday()
+        week = d.isocalendar()[1]
         if (wd == 0):
             weektime = 0
         ot = g['overtime']
         weektime += ot
         totaltime += ot
         p = g['date'].strftime("%d") + " " + g['overtimestr']
-        tab.append(p)
-        if wd == 6 or d==end:
-            week = d.isocalendar()[1]
-            month = d.strftime("%b")
-            year = d.year
+        if d.month == month:
+            tab.append(p)
+        else:
+            month = d.month
             tab = tab + [""] * (7-len(tab))
-            tabs.append([year,week,month]+tab+[coloredtime(weektime),coloredtime(totaltime)])
+            tabs.append([d.year,week,monthstr]+tab)
+            tab = [''] * d.weekday()
+            tab.append(p)
+            monthstr = d.strftime("%b")
+            #print(tabulate(tabs))
+            #print(tab)
+            #sys.exit(1)
+        if wd == 6 or d==end:
+            tab = tab + [""] * (7-len(tab))
+            tabs.append([d.year,week,d.strftime("%b")]+tab+[coloredtime(weektime),coloredtime(totaltime)])
             tab = []
     headers=["year","week","month","Mon","Tue","Wed","Thu","Fri","Sat","Sun","Overtime","Accumulated"]
     return((headers,tabs))
