@@ -14,7 +14,6 @@ from termcolor import colored
 from tabulate import tabulate
 import locale
 
-
 pp = pprint.PrettyPrinter(indent=4)
 
 parser = argparse.ArgumentParser(description='HID Interaction Tracker - Window Merger')
@@ -218,14 +217,35 @@ def loadextra(filename):
         v = yaml.safe_load(f.read())
     dd = []
     for a in v['extra']:
-        d = {}
-        d["location"] = a["location"]
-        d["start"] = datetime.datetime.strptime(a["start"],'%d.%m.%y %H:%M:%S').astimezone()
-        d["end"] = datetime.datetime.strptime(a["end"],'%d.%m.%y %H:%M:%S').astimezone()
-        d["comment"] = a.get("comment", None)
-        d["latitude"] = a.get("latitiude",None)
-        d["longitude"] = a.get("longitude",None)
-        dd.append(d)
+        t = a.get("type","single")
+        if t == "single":
+            d = {}
+            d["location"] = a["location"]
+            d["start"] = datetime.datetime.strptime(a["start"],'%d.%m.%y %H:%M:%S').astimezone()
+            d["end"] = datetime.datetime.strptime(a["end"],'%d.%m.%y %H:%M:%S').astimezone()
+            d["comment"] = a.get("comment", None)
+            d["latitude"] = a.get("latitiude",None)
+            d["longitude"] = a.get("longitude",None)
+            dd.append(d)
+
+        if t == "daily":
+            starttime = datetime.datetime.strptime(a["start"],'%H:%M:%S').time()
+            endtime = datetime.datetime.strptime(a["end"],'%H:%M:%S').time()
+            for days in a["days"].split(", "):
+                days = days.split("-")
+                start = datetime.datetime.strptime(days[0], '%d.%m.%y').date()
+                end   = datetime.datetime.strptime(days[1], '%d.%m.%y').date()
+                dates = daterange(start,end)
+                for date in dates:
+                    d = {}
+                    d["location"] = a["location"]
+                    d["start"] = datetime.datetime.combine(date,starttime).astimezone()
+                    d["end"] = datetime.datetime.combine(date,endtime).astimezone()
+                    d["comment"] = a.get("comment", None)
+                    d["latitude"] = a.get("latitiude",None)
+                    d["longitude"] = a.get("longitude",None)
+                    dd.append(d)
+
     return dd
 
 #print(json.dumps(events,indent=4))
@@ -334,9 +354,12 @@ extraevents = loadextraevents(args.extrafiles)
 vacation = loadvacation("vacation.yaml")
 sickdays = loadsickdays("sickdays.yaml")
 
-geolocations = [ 'IBM', 'IBM 2', 'IBM 3', 'Büro', 'Kantine', "Le Meridien Al Khobar", "Aramco Headquarters"]
+geolocations = [ 'IBM', 'IBM 2', 'IBM 3', 'Büro', 'Kantine', 'Aramco Headquarters']
+
+#geolocations = [ 'IBM', 'IBM 2', 'IBM 3', 'Büro', 'Kantine', 'Aramco Headquarters', 'Le Meridien Al Khobar']
 
 geoworkevents = list(filter(lambda e: e.get('location',"") in geolocations, geoevents))
+geoworkevents = list(filter(lambda e: e.get('comment',"") != "Urlaub", geoworkevents))
 
 first_event_date = min([geoworkevents[0]['start'].date() ,events[0]['start'].date()])
 last_event_date = max([geoworkevents[len(geoworkevents)-1]['end'].date() ,events[len(events)-1]['end'].date()])
@@ -394,6 +417,7 @@ def getday(d):
     return {
         'date': d,
         'daytype': daytype(d),
+        'workedtime': workedtime,
         'overtime': overtime,
         'gaptime': daygaptime,
         'overtimestr': otstr,
@@ -419,6 +443,7 @@ def compile_dayview(start, end):
     totaltime=0
     details = args.verbose
     tabs=[]
+    x=0
     for d in daterange(start, end):
         g = getday(d)
         wd = d.weekday()
@@ -430,21 +455,24 @@ def compile_dayview(start, end):
         otstr = coloredtime(ot)
         wtstr = coloredtime(weektime)
         tabs.append([g['date'].strftime("%Y-%m-%d %a"), g['daytype'], otstr, "{:.0f} m".format(g['gaptime']), wtstr if wd==6 else None])
-        if details == True:
-            #for de in g['events']:
-            #    tabs.append(['',de['start'].time(),de['end'].time(), de['location'], de.get('comment',"")])
+        if details:
             for de in g['allevents']:
                 dt = de['end'].timestamp()-de['start'].timestamp()
                 diffdays = (de['end'].date()-de['start'].date()).days
                 diffdays = " {:+} day{}".format(diffdays,"s" if diffdays > 1 else "") if diffdays > 0 else ""
-                tabs.append(['',de['start'].time(),str(de['end'].time()) + str(diffdays), "{:.0f} m".format(dt/60), de['location'], de.get('comment',"")])
-    headers = ["date","daytype","overtime","pausetime","weeksum",""]
+                tabs.append(['','','','','',de['start'].time(),str(de['end'].time()) + str(diffdays), "{:.0f} h {:.0f} m".format(dt/60/60,(dt/60) % 60), de['location'], de.get('comment',"")])
+                x += g['workedtime']
+            tabs.append(['','','','','','','', "{:.0f} h {:.0f} m".format(g['workedtime']/60,g['workedtime'] % 60)])
+    print(x/60)
+    headers = ["date","daytype","overtime","pausetime","weeksum"]
+    if details:
+        headers += ["start","end","duration","location","comment"]
     return (headers, tabs)
 
 def compile_weekview(start, end):
     weektime=0
     totaltime=0
-    details = True
+    details = args.verbose
     tabs=[]
     tab = [''] * start.weekday()
     month = start.month
@@ -458,7 +486,10 @@ def compile_weekview(start, end):
         ot = g['overtime']
         weektime += ot
         totaltime += ot
-        p = g['date'].strftime("%d") + " " + g['overtimestr']
+        if details == True:
+            p = g['date'].strftime("%d") + "\n" + g['overtimestr'] + "\n"+"\n".join(filter(None,map(lambda e: e.get('comment',""),g['allevents'])))
+        else:
+            p = g['date'].strftime("%d") + " " + g['overtimestr'] 
         if d.month == month:
             tab.append(p)
         else:
@@ -468,9 +499,6 @@ def compile_weekview(start, end):
             tab = [''] * d.weekday()
             tab.append(p)
             monthstr = d.strftime("%b")
-            #print(tabulate(tabs))
-            #print(tab)
-            #sys.exit(1)
         if wd == 6 or d==end:
             tab = tab + [""] * (7-len(tab))
             tabs.append([d.year,week,d.strftime("%b")]+tab+[coloredtime(weektime),coloredtime(totaltime)])
@@ -500,7 +528,7 @@ if args.days:
     print(tabulate(tabs,headers=headers))
 else:
     headers, tabs = compile_weekview(start, end)
-    print(tabulate(tabs,headers=headers))
+    print(tabulate(tabs,headers=headers,tablefmt="psql"))
        
 if len(missing_events)>0:
     print("work-days with no work registered:", ", ".join(map(lambda d:str(d),missing_events)))
