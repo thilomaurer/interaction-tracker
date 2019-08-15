@@ -13,6 +13,7 @@ import argparse
 from termcolor import colored
 from tabulate import tabulate
 import locale
+import math
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -460,9 +461,9 @@ def compile_dayview(start, end):
                 dt = de['end'].timestamp()-de['start'].timestamp()
                 diffdays = (de['end'].date()-de['start'].date()).days
                 diffdays = " {:+} day{}".format(diffdays,"s" if diffdays > 1 else "") if diffdays > 0 else ""
-                tabs.append(['','','','','',de['start'].time(),str(de['end'].time()) + str(diffdays), "{:.0f} h {:.0f} m".format(dt/60/60,(dt/60) % 60), de['location'], de.get('comment',"")])
+                tabs.append(['','','','','',de['start'].time(),str(de['end'].time()) + str(diffdays), "{:.0f} h {:.0f} m".format(math.floor(dt/60/60),(dt/60) % 60), de['location'], de.get('comment',"")])
                 x += g['workedtime']
-            tabs.append(['','','','','','','', "{:.0f} h {:.0f} m".format(g['workedtime']/60,g['workedtime'] % 60)])
+            tabs.append(['','','','','','','', "{:.0f} h {:.0f} m".format(math.floor(g['workedtime']/60),g['workedtime'] % 60)])
     print(x/60)
     headers = ["date","daytype","overtime","pausetime","weeksum"]
     if details:
